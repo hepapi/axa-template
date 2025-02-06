@@ -1,0 +1,16 @@
+# TODO: add documentation
+
+- name: Create a Vault kv2 secret at — "{{ secret_path }}"
+  community.hashi_vault.vault_kv2_write:
+    url: "{{ vault_address }}"
+    path: "{{ secret_path }}"
+    data: "{{ secret_data }}"
+    auth_method: token
+    token: "{{ vault_token }}"
+  register: _vault_kv2_write_result # static name
+  debugger: on_failed
+
+- name: Set Fact - Vault KV2 secret write result dynamically to "{{ register_to }}"
+  ansible.builtin.set_fact:
+    "{{ register_to }}": "{{ _vault_kv2_write_result }}"
+  when: register_to is defined

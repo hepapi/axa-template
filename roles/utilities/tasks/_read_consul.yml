@@ -1,0 +1,20 @@
+# TODO: add documentation
+
+- name: Read Consul API at — "{{ consul_uri }}"
+  ansible.builtin.uri:
+    url: "{{ consul_uri }}"
+    method: GET
+    headers:
+      X-Consul-Token: "{{ consul_token }}"
+    status_code: 200
+    body_format: json
+  register: _read_consul_result # static name
+  debugger: on_failed
+
+# TODO: failed_when 
+
+- name: Set Fact - Read Consul result dynamically to "{{ register_to }}"
+  ansible.builtin.set_fact:
+    "{{ register_to }}": "{{ _read_consul_result }}"
+  when: register_to is defined
+

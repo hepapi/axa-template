@@ -1,0 +1,22 @@
+# TODO: add documentation
+
+- name: Git ACP (Add, Commit, Push) w/ SSH access - of given files 
+  environment:
+    GIT_AUTHOR_NAME: "{{ git_author_name }}"
+    GIT_AUTHOR_EMAIL: "{{ git_author_email }}"
+    GIT_COMMITTER_NAME: "{{ git_author_name }}"
+    GIT_COMMITTER_EMAIL: "{{ git_author_email }}"
+    REPO_DIR: "{{ repo_clone_dest }}"
+    REPO_BRANCH: "{{ repo_branch }}"
+    SSH_KEY_PATH: "{{ repo_sshkey_rel_path }}"
+    UPDATE_FILES_REL_PATHS: "{{ update_rel_filepaths_str_list | join(',') }}"
+    GIT_COMMIT_MESSAGE: "{{ git_commit_message }}"
+  shell: "roles/utilities/files/git_add_commit_push.sh"
+  register: _git_acp_utils_task_output
+    
+
+# dynamically register the output to a given variable name
+- name: Set Fact - Git ACP task result result dynamically to "{{ register_to }}"
+  ansible.builtin.set_fact:
+    "{{ register_to }}": "{{ _git_acp_utils_task_output }}"
+  when: register_to is defined

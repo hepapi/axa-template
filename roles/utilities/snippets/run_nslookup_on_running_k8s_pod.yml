@@ -1,0 +1,8 @@
+- name: "Run nslookup command in {{ pod_name }} at ns: {{ release_namespace }}"
+  shell:
+    cmd: "kubectl exec -it {{ pod_name }} -n {{ release_namespace }} -- nslookup google.com"
+  register: nslookup_result
+
+- name: Print nslookup result
+  debug:
+    var: nslookup_result

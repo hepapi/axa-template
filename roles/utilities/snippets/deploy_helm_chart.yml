@@ -1,0 +1,10 @@
+- name: Deploy Helm Chart for {{ helm.release_name }}
+  kubernetes.core.helm:
+    kubeconfig: "{{ k8s.kubeconfig_path }}"
+    context: "{{ k8s.cluster_context }}"
+    name: "{{ helm.release_name }}"
+    chart_ref: "{{ helm.chart_source }}"
+    release_namespace: "{{ helm.release_namespace }}"
+    create_namespace: true
+    values_files:
+      - "{{ helm.values_path }}"

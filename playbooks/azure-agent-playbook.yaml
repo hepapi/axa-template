@@ -1,0 +1,5 @@
+- hosts: azure_agent_server
+  become: true
+  gather_facts: true
+  roles:
+    - azure-agent-installation

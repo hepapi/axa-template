@@ -1,0 +1,4 @@
+    cluster_token: DevUpstreamToken
+    node_name: dev-np-us-m-01
+    rke2_version: v1.28.9+rke2r1
+    master_node_address: https://10.254.221.12:9345

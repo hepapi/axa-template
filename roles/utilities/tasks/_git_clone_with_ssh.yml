@@ -1,0 +1,44 @@
+# TODO: add documentation
+
+- name: Check if the clone directory exists and delete if so 
+  block:
+    - name: Clone Git Repo — Check if the clone directory exists at — "{{ repo_clone_dest }}"
+      stat:
+        path: "{{ repo_clone_dest }}"
+      register: directory_stat
+      ignore_errors: true  # To ignore errors if the directory doesn't exist
+
+    - name: Clone Git Repo — Remove clone directory if it exists
+      file:
+        path: "{{ repo_clone_dest }}"
+        state: absent
+      when: directory_stat.stat.exists
+
+    - name: Clone Git Repo —  Display message if directory was removed
+      debug:
+        msg: "Directory {{ repo_clone_dest }} was removed."
+      when: directory_stat.stat.exists
+
+
+- name: Clone Git repo w/ SSH — "{{ repo_github_ssh_uri }}"
+  ansible.builtin.git:
+    repo: "{{ repo_github_ssh_uri }}"
+    dest: "{{ repo_clone_dest }}"
+    clone: yes
+    # accept_hostkey: no
+    key_file: "{{ repo_sshkey_rel_path }}"
+    version: "{{ repo_branch }}"
+    accept_hostkey: yes
+  environment:
+    GIT_TERMINAL_PROMPT: "0"
+
+- name: Confirm the Git repo at — "{{ repo_clone_dest }}"
+  ansible.builtin.git:
+    repo: "{{ repo_github_ssh_uri }}"
+    dest: "{{ repo_clone_dest }}"
+    clone: no
+    update: no
+    key_file: "{{ repo_sshkey_rel_path }}"
+    accept_hostkey: yes
+  environment:
+      GIT_TERMINAL_PROMPT: "0"

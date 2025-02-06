@@ -1,0 +1,38 @@
+- name: Update apt cache
+  apt: update_cache=yes
+
+- name: Add the PostgreSQL APT key
+  apt_key:
+    url: https://www.postgresql.org/media/keys/ACCC4CF8.asc
+    state: present
+
+- name: Add the PostgreSQL APT repositories
+  apt_repository:
+    repo: deb http://apt.postgresql.org/pub/repos/apt/ {{ ansible_distribution_release }}-pgdg main
+    state: present
+
+- name: Update apt cache
+  apt: update_cache=yes
+
+- name: Install PostgreSQL
+  apt:
+    name: postgresql-{{ postgresql_version }}
+    state: present
+
+- name: Enable PostgreSQL service
+  service:
+    name: postgresql
+    enabled: yes
+    state: started
+
+- name: Set password for the default PostgreSQL user
+  become_user: postgres
+  shell: 'psql -c "ALTER USER postgres WITH PASSWORD ''{{ postgres_password }}'';"'
+
+- name: Create a new user in PostgreSQL
+  become_user: postgres
+  shell: 'psql -c "CREATE USER {{ db_user }} WITH PASSWORD ''{{ db_password }}'' SUPERUSER;"'
+
+- name: Create a new database in PostgreSQL
+  become_user: postgres
+  shell: 'psql -c "CREATE DATABASE {{ db_name }} WITH OWNER {{ db_user }};"'

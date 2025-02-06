@@ -1,0 +1,29 @@
+- name: Update apt cache
+  apt:
+    update_cache: yes
+    cache_valid_time: 3600
+
+- name: Install Redis
+  apt:
+    name: redis-server
+    state: present
+
+- name: Ensure Redis is running
+  systemd:
+    name: redis-server
+    state: started
+    enabled: yes
+
+- name: Add a line to a file    # change password
+  ansible.builtin.lineinfile:
+    path: /etc/redis/redis.conf
+    insertafter: EOF
+    line: |
+      supervised systemd
+      bind 0.0.0.0 ::1
+      requirepass {{ redis_password }}
+
+- name: Restart Redis service
+  ansible.builtin.service:
+    name: redis
+    state: restarted

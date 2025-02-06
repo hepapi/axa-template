@@ -1,0 +1,15 @@
+# TODO: add documentation
+
+- name: Clone Git repo w/ HTTPS — "{{ git_repo_uri_without_https }}"
+  ansible.builtin.git:
+    repo: "https://{{git_user|urlencode()}}:{{git_token|urlencode()}}@{{ git_repo_uri_without_https }}"
+    dest: "{{ repo_clone_dest }}"
+    version: "{{ repo_branch }}"
+    clone: yes
+    update: yes
+
+# TODO: decide if this necessary.
+# - name: Remove visibility of Git Credentials
+#   command:
+#     cmd: git remote set-url origin https://{{ git_repo_uri_without_https }}
+#     chdir: "{{ repo_clone_dest }}"

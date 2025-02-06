@@ -1,0 +1,12 @@
+- name: Get Pod Infos in {{ helm_release_namespace }} namespace
+  k8s_info:
+    kind: Pod
+    namespace: "{{ helm_release_namespace }}"
+  register: pods_info
+
+
+- name: Filter pod name starting with "ssserverrr"
+  set_fact:
+    consul_pod_name: "{{ item.metadata.name }}"
+  loop: "{{ pods_info.resources }}"
+  when: "'ssserverrr' in item.metadata.name"

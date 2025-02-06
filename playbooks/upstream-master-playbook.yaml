@@ -1,0 +1,6 @@
+- hosts: nonprod_upstream_rke2_master
+  become: true
+  gather_facts: true
+  roles:
+    - prerequirements
+    - rke2-master-installation

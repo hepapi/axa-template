@@ -1,0 +1,79 @@
+- name: Install Git
+  ansible.builtin.package:
+    name: git
+    state: present
+
+- name: Download kubectl binary
+  get_url:
+    url: "https://dl.k8s.io/release/v1.29.0/bin/linux/amd64/kubectl"
+    dest: "/tmp/kubectl"
+    mode: '0755'
+
+- name: Install kubectl to /usr/local/bin/
+  command: install -o root -g root -m 0755 /tmp/kubectl /usr/local/bin/kubectl
+  args:
+    creates: /usr/local/bin/kubectl
+  become: yes
+
+- name: Test kubectl
+  command: /usr/local/bin/kubectl version --client
+  register: kubectl_version
+  changed_when: false
+
+- name: Install helm 
+  shell: curl https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash
+  args:
+    creates: /usr/local/bin/helm
+
+- name: Clone kubectx
+  git:
+    repo: https://github.com/ahmetb/kubectx
+    dest: /opt/kubectx
+
+- name: Create a symbolic link for kubectx as kubectx
+  file:
+    src: /opt/kubectx/kubectx
+    dest: /usr/local/bin/kubectx
+    state: link
+
+- name: Create a symbolic link for kubectx as kx
+  file:
+    src: /opt/kubectx/kubectx
+    dest: /usr/local/bin/kx
+    state: link
+
+- name: Create a symbolic link for kubens as kubens
+  file:
+    src: /opt/kubectx/kubens
+    dest: /usr/local/bin/kubens
+    state: link
+
+- name: Create a symbolic link for kubectx as kn
+  file:
+    src: /opt/kubectx/kubens
+    dest: /usr/local/bin/kn
+    state: link
+
+# ========== Ansible Galaxy Packages ==========
+- name: Install galaxy collection for Kubernetes.Core (helm)
+  community.general.ansible_galaxy_install:
+    type: collection
+    name: kubernetes.core
+
+# ========== Python Installation ==========
+- name: Install Python and pip
+  ansible.builtin.package:
+    name: python3-pip
+    state: present
+  become: yes
+
+# ========== Python Pip Packages ==========
+# - name: Install PyYAML pip package (req. by kubernetes.core)
+#   ansible.builtin.pip:
+#     name: PyYAML==6.0.1
+
+- name: Install PyYAML
+  ansible.builtin.apt:
+    name: python3-yaml
+    state: present
+

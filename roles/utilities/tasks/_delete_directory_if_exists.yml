@@ -1,0 +1,24 @@
+# == Deletes a directory if it exists
+# Usage:
+#    - name: Delete a directory
+#      import_tasks: roles/utilities/tasks/_delete_directory_if_exists.yml
+#      vars:
+#        directory_to_delete: "/tmp/some-dir"
+
+
+- name: DeleteDir — Check if the directory exists — "{{ directory_to_delete }}"
+  ansible.builtin.stat:
+    path: "{{ directory_to_delete }}"
+  register: does_directory_exist
+
+- name: DeleteDir — Remove the directory — "{{ directory_to_delete }}" 
+  ansible.builtin.file:
+    path: "{{ directory_to_delete }}"
+    state: absent
+    # recurse: true
+  when: 
+    - directory_to_delete is defined 
+    - directory_to_delete != ""
+    - does_directory_exist.stat.exists # only if the directory exists
+
+

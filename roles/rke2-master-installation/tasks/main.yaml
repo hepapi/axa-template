@@ -1,0 +1,40 @@
+- name: Update apt cache
+  apt: update_cache=yes
+
+- name: Create config directory
+  file:
+    path: /etc/rancher/rke2
+    state: directory
+    mode: '0755'
+
+- name: Create config file
+  copy:
+    content: |
+      token: {{ cluster_token }}
+      write-kubeconfig-mode: "0644"
+      etcd-snapshot-schedule-cron: "0 */6 * * *"
+      cni:
+        - calico
+      disable:
+        - rke2-canal
+        - rke2-kube-proxy
+    dest: /etc/rancher/rke2/config.yaml
+    mode: '0644'
+
+- name: Download RKE2 install script
+  get_url:
+    url: https://get.rke2.io
+    dest: ~/install.sh
+    mode: '0755'
+
+- name: Install RKE2 server
+  shell: |
+    INSTALL_RKE2_VERSION={{ rke2_version }} INSTALL_RKE2_TYPE=server ~/install.sh
+  args:
+    executable: /bin/bash
+
+- name: Enable RKE2 server service
+  service:
+    name: rke2-server
+    enabled: yes
+    state: started

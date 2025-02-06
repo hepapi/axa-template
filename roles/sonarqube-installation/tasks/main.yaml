@@ -1,0 +1,145 @@
+
+- name: Check internet connection and update the server
+  apt:
+    update_cache: yes
+
+- name: Install OpenJDK 17
+  apt:
+    name: openjdk-17-jdk
+    state: present
+
+- name: Update apt cache
+  apt: update_cache=yes
+
+- name: Add the PostgreSQL APT key
+  apt_key:
+    url: https://www.postgresql.org/media/keys/ACCC4CF8.asc
+    state: present
+
+- name: Add the PostgreSQL APT repositories
+  apt_repository:
+    repo: deb http://apt.postgresql.org/pub/repos/apt/ {{ ansible_distribution_release }}-pgdg main
+    state: present
+
+- name: Update apt cache
+  apt: update_cache=yes
+
+- name: Install PostgreSQL
+  apt:
+    name: postgresql-{{ postgresql_version }}
+    state: present
+
+- name: Enable PostgreSQL service
+  service:
+    name: postgresql
+    enabled: yes
+    state: started
+
+- name: Set password for postgres user
+  shell: "echo 'postgres:{{ postgres_password }}' | chpasswd"
+
+- name: Create sonar user and database
+  become_user: postgres
+  shell: |
+    createuser sonar
+    echo "ALTER USER sonar WITH ENCRYPTED password '{{ my_strong_password }}';" | psql
+    createdb sonarqube -O sonar
+    echo "GRANT ALL PRIVILEGES ON DATABASE sonarqube to sonar;" | psql
+
+- name: Install zip package
+  apt:
+    name: zip
+    state: present
+
+- name: Download SonarQube Developer Edition
+  get_url:
+    url: "{{ sonar_developer_edition_url }}"
+    dest: "/home/ubuntu/sonarqube.zip"
+
+- name: Unzip SonarQube package
+  shell: |
+    unzip sonarqube*.zip -d /opt
+    mv /opt/sonarqube-* /opt/sonarqube
+
+- name: Sonar user an permission
+  shell: |
+    groupadd sonar
+    useradd -d /opt/sonarqube -g sonar sonar
+    chown sonar:sonar /opt/sonarqube -R
+
+- name: Configure SonarQube DB username
+  lineinfile:
+    path: "/opt/sonarqube/conf/sonar.properties"
+    regexp: "^sonar.jdbc.username="
+    insertafter: "^#sonar.jdbc.username="
+    line: "sonar.jdbc.username={{ sonar_db_user }}"
+
+- name: Configure SonarQube DB password
+  lineinfile:
+    path: "/opt/sonarqube/conf/sonar.properties"
+    regexp: "^sonar.jdbc.password="
+    insertafter: "^#sonar.jdbc.password="
+    line: "sonar.jdbc.password={{ my_strong_password }}"
+
+- name: Configure SonarQube DB connection string
+  lineinfile:
+    path: "/opt/sonarqube/conf/sonar.properties"
+    regexp: "sonar.jdbc.url=jdbc:postgresql://localhost:5432/sonarqube"
+    insertafter: "^#sonar.jdbc.url=jdbc:postgresql://localhost/sonar"
+    line: "sonar.jdbc.url=jdbc:postgresql://localhost:5432/sonarqube"
+ 
+- name: Create systemd service file for SonarQube
+  copy:
+    content: |
+      [Unit]
+      Description=SonarQube service
+      After=syslog.target network.target
+
+      [Service]
+      Type=forking
+      ExecStart=/opt/sonarqube/bin/linux-x86-64/sonar.sh start
+      ExecStop=/opt/sonarqube/bin/linux-x86-64/sonar.sh stop
+      User=sonar
+      Group=sonar
+      Restart=always
+      LimitNOFILE=65536
+      LimitNPROC=4096
+
+      [Install]
+      WantedBy=multi-user.target
+    dest: /etc/systemd/system/sonar.service
+
+- name: Enable the SonarQube service
+  systemd:
+    name: sonar
+    state: started
+    enabled: yes
+    daemon_reload: yes
+
+- name: Set vm.max_map_count in sysctl.conf
+  lineinfile:
+    path: /etc/sysctl.conf
+    line: "vm.max_map_count=262144"
+    state: present
+
+- name: Set fs.file-max in sysctl.conf
+  lineinfile:
+    path: /etc/sysctl.conf
+    line: "fs.file-max=65536"
+    state: present
+
+- name: Set ulimit -n in sysctl.conf
+  lineinfile:
+    path: /etc/sysctl.conf
+    line: "ulimit -n 65536"
+    state: present
+
+- name: Set ulimit -u in sysctl.conf
+  lineinfile:
+    path: /etc/sysctl.conf
+    line: "ulimit -u 4096"
+    state: present
+
+- name: Create sonar user and database
+  shell: |
+    reboot now

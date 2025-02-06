@@ -1,0 +1,5 @@
+    postgresql_version: 16
+    db_name: hepapi
+    db_user: hepapiuser
+    db_password: xxxxxxxxxx
+    postgres_password: xxxxxxxxxx

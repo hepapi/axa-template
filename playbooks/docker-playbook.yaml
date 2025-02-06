@@ -1,0 +1,5 @@
+- hosts: docker_server
+  become: true
+  gather_facts: true
+  roles:
+    - docker-installation

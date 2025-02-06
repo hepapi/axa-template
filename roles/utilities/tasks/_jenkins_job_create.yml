@@ -1,0 +1,24 @@
+# TODO: add documentation
+
+- name: Create Jenkins Job — "{{ jenkins_job_name }}"
+  community.general.jenkins_job:
+    config: "{{ jenkins_job_xml_config }}"
+    name: "{{ jenkins_job_name }}"
+    url: "{{ jenkins_url }}"
+    user: "{{ jenkins_user }}"
+    token: "{{ jenkins_token }}"
+    state: "{{ jenkins_job_state}}"  # "present"
+    validate_certs: "{{ jenkins_validate_certs }}"
+
+
+# Example Usage:
+# - name: Update Jenkins Job — "{{ jenkins_job_name }}"
+#   import_tasks: roles/utilities/tasks/_jenkins_job.yml
+#   vars:
+#     jenkins_job_xml_config: ""
+#     jenkins_job_name: ""
+#     jenkins_url: "" 
+#     jenkins_user: "" 
+#     jenkins_token: "" 
+#     jenkins_job_state: ""
+#     jenkins_validate_certs: "" 

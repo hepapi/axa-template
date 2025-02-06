@@ -1,0 +1,5 @@
+- hosts: redis
+  become: true
+  gather_facts: true
+  roles:
+    - redis-installation

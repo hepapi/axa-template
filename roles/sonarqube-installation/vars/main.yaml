@@ -1,0 +1,5 @@
+    postgresql_version: 16
+    sonar_db_user: sonar
+    my_strong_password: xxxxxxxxxx
+    postgres_password: xxxxxxxxxx
+    sonar_developer_edition_url: https://binaries.sonarsource.com/CommercialDistribution/sonarqube-developer/sonarqube-developer-10.5.1.90531.zip

@@ -1,0 +1,12 @@
+new_username: azureagent
+new_user_password: securepassword
+additional_groups:
+  - sudo
+  - docker
+### Azure Devops agent pool oluşturduktan sonra create agent altından url elde eldilmelidir.
+agent_url: https://vstsagentpackage.azureedge.net/agent/3.239.1/vsts-agent-linux-x64-3.239.1.tar.gz
+agent_install_dir: agent
+organization_url: <organization_url>
+personal_access_token: <PAT>
+pool_name: ansible
+agent_name: test

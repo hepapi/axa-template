@@ -1,0 +1,44 @@
+- name: Create azureagent user
+  user:
+    name: "{{ new_username }}"
+    password: "{{ new_user_password | password_hash('sha512') }}"
+    shell: /bin/bash
+    createhome: yes
+
+- name: Add the user to other necessary groups
+  user:
+    name: "{{ new_username }}"
+    groups: "{{ additional_groups }}" 
+    append: yes
+
+- name: ssh restart
+  ansible.builtin.service:
+    name: ssh
+    state: restarted
+
+- name: Create Azure DevOps agent directory
+  become_user: "{{ new_username }}"
+  file:
+    path: "~/{{ agent_install_dir }}"
+    state: directory
+    mode: '0755'
+
+- name: Install required system packages
+  become_user: "{{ new_username }}"
+  get_url:
+    url: "{{ agent_url }}"
+    dest: "~/{{ agent_install_dir }}/"
+
+- name: Azure DevOps agent extract the tar.gz
+  become_user: "{{ new_username }}"
+  ansible.builtin.shell:
+    cmd: "find ~/{{ agent_install_dir }} -maxdepth 1 -name 'vsts-*.tar.gz' -exec tar -xzvf {} -C ~/{{ agent_install_dir }} \\;"
+    creates: "~/{{ agent_install_dir }}/bin/Agent.Listener"
+
+- name: Configure the Azure DevOps agent
+  become_user: "{{ new_username }}"
+  ansible.builtin.command: ~/{{ agent_install_dir }}/config.sh --unattended --url {{ organization_url }} --auth pat --token {{ personal_access_token }} --pool {{ pool_name }} --agent {{ agent_name }}
+
+- name: Install the Azure DevOps agent service
+  ansible.builtin.shell:
+    cmd: "cd /home/{{ new_username }}/{{ agent_install_dir }} && ./svc.sh install {{ new_username }} &&  ./svc.sh start"

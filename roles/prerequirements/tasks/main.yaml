@@ -1,0 +1,167 @@
+
+- name: Add or modify hard nofile limits for root
+  community.general.pam_limits:
+    domain: root
+    limit_type: hard
+    limit_item: nofile
+    value: 1024000
+
+- name: Add or modify hard nofile limits for root
+  community.general.pam_limits:
+    domain: root
+    limit_type: hard
+    limit_item: nproc
+    value: 1024000
+
+- name: Add or modify soft nofile limits for root
+  community.general.pam_limits:
+    domain: root
+    limit_type: soft
+    limit_item: nofile
+    value: 1024000
+
+- name: Add or modify soft nofile limits for root
+  community.general.pam_limits:
+    domain: root
+    limit_type: soft
+    limit_item: nproc
+    value: 1024000
+
+- name: Add or modify hard nofile limits for wildcard domain
+  community.general.pam_limits:
+    domain: '*'
+    limit_type: hard
+    limit_item: nofile
+    value: 1024000
+
+- name: Add or modify hard nofile limits for wildcard domain
+  community.general.pam_limits:
+    domain: '*'
+    limit_type: hard
+    limit_item: nproc
+    value: 1024000
+
+- name: Add or modify soft nofile limits for wildcard domain
+  community.general.pam_limits:
+    domain: '*'
+    limit_type: soft
+    limit_item: nofile
+    value: 1024000
+
+- name: Add or modify soft nofile limits for wildcard domain
+  community.general.pam_limits:
+    domain: '*'
+    limit_type: soft
+    limit_item: nproc
+    value: 1024000
+
+- name: Add the br_netfilter module
+  ansible.builtin.modprobe:
+    name: br_netfilter
+    state: present
+
+- name: Ensure br_netfilter is enabled.
+  modprobe:
+    name: br_netfilter
+    state: present
+
+- name: Enable ip_forward
+  sysctl:
+    name: net.ipv4.ip_forward
+    value: '1'
+    sysctl_set: yes
+    state: present
+    reload: yes
+
+- name: Enable ip_forward
+  sysctl:
+    name: net.ipv4.ip_forward
+    value: '1'
+    sysctl_set: yes
+    state: present
+    reload: yes
+
+- name: Enable bridge ipv4
+  sysctl:
+    name: net.bridge.bridge-nf-call-iptables
+    value: '1'
+    sysctl_set: yes
+    state: present
+    reload: yes
+
+ 
+- name:  Enable bridge ipv6
+  sysctl:
+    name: net.bridge.bridge-nf-call-ip6tables
+    value: '1'
+    sysctl_set: yes
+    state: present
+    reload: yes
+
+- name: Disable the ufw firewall (on Ubuntu, if configured).
+  service:
+    name: ufw
+    state: stopped
+    enabled: false
+    
+# - name: Stop Firewalld Service
+#   ansible.builtin.systemd:
+#     name: firewalld
+#     state: stopped
+
+# - name: Disabled Firewalld Service
+#   ansible.builtin.systemd:
+#     name: firewalld
+#     enabled: no
+
+- name: Disable SWAP (swapoff)(1/2)
+  shell: |
+    swapoff -a
+
+- name: Disable SWAP (Remove fstab  entry)(1/2)
+  lineinfile:
+    path: '/etc/fstab'
+    regexp: '\sswap\s'
+    state: 'absent'
+
+- name: Set vm.panic_on_oom to 0
+  sysctl:
+    name: vm.panic_on_oom
+    value: '0'
+    state: present
+    # reload: yes
+
+- name: Set vm.overcommit_memory to 1
+  sysctl:
+    name: vm.overcommit_memory
+    value: '1'
+    state: present
+    reload: yes
+
+- name: Set kernel.panic to 10
+  sysctl:
+    name: kernel.panic
+    value: '10'
+    state: present
+    # reload: yes
+
+- name: Set kernel.panic_on_oops to 1
+  sysctl:
+    name: kernel.panic_on_oops
+    value: '1'
+    state: present
+    # reload: yes
+
+- name: Stop apparmor
+  service:
+    name: apparmor
+    state: stopped
+  failed_when: false
+  when: ansible_distribution == 'Debian' or ansible_distribution == 'Ubuntu'
+
+- name: Disable apparmor
+  service:
+    name: apparmor
+    enabled: false
+  failed_when: false
+  when: ansible_distribution == 'Debian' or ansible_distribution == 'Ubuntu'
