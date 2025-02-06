@@ -1,0 +1,65 @@
+# Installs the dependencies for this ansible repository. 
+# This playbook should be run before any other playbooks in this repository (probably in a CI Pipeline).
+# Run it with ```ansible-playbook dependency-setup-playbook.yaml```
+- hosts: localhost
+  connection: local
+  gather_facts: no
+  tasks:
+  # ========== Helm Binary ==========
+  - name: Get Helm binary version
+    command: helm version --client
+    register: helm_version_output
+    ignore_errors: yes
+    changed_when: false 
+
+  - name: Check if Helm binary is installed
+    assert:
+      that:
+        - helm_version_output.rc == 0
+      fail_msg: "Helm is NOT installed. Please install Helm before running this playbook. Aborting."
+      success_msg: "Helm is installed."
+
+  # ========== Helm Plugins ==========
+  - name: Install Helm diff plugin
+    kubernetes.core.helm_plugin: # this will help ansible perform better idempotency checks
+      plugin_path: https://github.com/databus23/helm-diff
+      state: present
+
+  # ========== Install a Ansible Galaxy package ==========
+  - name: Install galaxy collection for Hashicorp Vault 
+    community.general.ansible_galaxy_install:
+      type: collection
+      name: community.hashi_vault
+
+  # ========== Install Python Pip package ==========
+  - name: Install pip package for Hashicorp Vault connection
+    ansible.builtin.pip:
+      name: hvac
+
+  - name: Ensure kubernetes Python library is installed
+    ansible.builtin.pip:
+      name: kubernetes
+      state: present
+
+  - name: Ensure psycopg2-binary Python library is installed
+    ansible.builtin.pip:
+      name: psycopg2-binary
+      state: present
+  
+  - name: Install PyYAML pip package (req. by kubernetes.core)
+    ansible.builtin.pip:
+      name: PyYAML==6.0.1
+  
+  # ========== Install jq on apt — Ubuntu ==========
+  - name: Install jq package
+    ansible.builtin.apt:
+      name: jq
+      state: present
+
+  # # ========== Install jq with yum — Amazon Linux, RedHat, CentOS, Rocky ==========
+  # - name: Install jq package
+  #   ansible.builtin.yum:
+  #     name: jq
+  #     state: present
+  
+  

@@ -1,0 +1,4 @@
+# TODO: add azure devops tasks to: 
+#   - setup dependencies with playbook
+#   - check connectivity with playbook & fail if needed
+#   - run the actual playbook

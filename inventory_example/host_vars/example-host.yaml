@@ -1,0 +1,8 @@
+variables:
+  that: applies
+  to: this
+  host: only
+  
+ansible_user: myuser
+ansible_ssh_private_key_file: /path/to/my/key
+ansible_port: 2222

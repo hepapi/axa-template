@@ -1,0 +1,159 @@
+# == Connectivity Check Playbook ==
+# Checks network & access connectivity to all the required services.
+# Run it with: ```ansible-playbook connectivity-check-playbook.yaml``` 
+- hosts: localhost
+  connection: local
+  gather_facts: false
+  tasks:
+
+    # # ========== Check Connection with  Postgres    ==========
+    # - name: PostgreSQL ping 
+    #   postgresql_ping:
+    #     db: "{{ postgresdb.database }}"
+    #     login_user: "{{ postgresdb.username }}"
+    #     login_host: "{{ postgresdb.host }}"
+    #     login_password: "{{ postgresdb.password }}"
+    #     port: "{{ postgresdb.port }}"
+    #   register: pg_ping
+    #   failed_when: not pg_ping.is_available
+
+    # - name: Assert — Postgres Database is accessible
+    #   ansible.builtin.assert:
+    #     that:
+    #       - pg_ping.is_available == true 
+    #     fail_msg: "Failed to connect to PostgreSQL database successful. Please check your vars and network connectivity."
+    #     success_msg: "Connection to PostgreSQL database successful."
+    #   tags: check
+
+    # # ========== Check for connectivity to Consul API ==========
+    # - name: Check — Test Consul Connectivity by reading catalog/datacenters
+    #   import_tasks: roles/utilities/tasks/_read_consul.yml
+    #   vars:
+    #     consul_token: ""  # consul token is not supported in -dev env,
+    #     consul_uri: "{{ consul_address }}v1/catalog/datacenters" 
+    #     status_code: [200,201,202]
+    #     register_to: consul_data_centers_response
+    #   tags: check
+
+    # - name: Assert — Consul API is accessible 
+    #   vars:
+    #     data: "{{ consul_data_centers_response.json | default('No Data') }}"
+    #   ansible.builtin.assert:
+    #     that:
+    #       - consul_data_centers_response.json is defined
+    #       - consul_data_centers_response.status == 200
+    #     fail_msg: "Failed to read datacenters from Consul. Please check your consul_address var and network connectivity."
+    #     success_msg: "Success connecting to Consul. Datacenters read: {{data}} for API connection test."
+    #   tags: check
+
+
+    # # ========== Check for connectivity to Vault API ==========
+    # - name: Check — Vault connectivity by reading provided token
+    #   uri:
+    #     url: "{{ vault_address }}/v1/auth/token/lookup-self"
+    #     body_format: json
+    #     method: GET
+    #     body: {}
+    #     headers:
+    #         X-Vault-Token: "{{ vault_token }}"
+    #     return_content: yes
+    #     status_code: 200
+    #   register: vault_currently_used_token
+    #   ignore_errors: yes
+    #   no_log: true
+    #   tags: check
+
+    # - name: Assert — Vault API is accessible
+    #   vars:
+    #     display_name: "{{ vault_currently_used_token.json.data.display_name | default('No Token') }}"
+    #     ttl: "{{ vault_currently_used_token.json.data.ttl | default('No TTL') }}"
+    #   ansible.builtin.assert:
+    #     that:
+    #       - vault_currently_used_token is defined
+    #       - vault_currently_used_token.json is defined
+    #       - vault_currently_used_token.json.errors is not defined
+    #       - vault_currently_used_token.status == 200
+    #     fail_msg: "Failed to read the current Vault Token. Provided token is unusable. Please check your token."
+    #     success_msg: "Success reading the current Vault Token with name: {{display_name}}, TTL: {{ttl}}"
+    #   tags: check
+
+
+    # # ========== Check for connectivity to Jenkins API ==========
+    # - name: Check — Read List of Jenkins Jobs
+    #   community.general.jenkins_job_info:
+    #     url: "{{ jenkins_url }}"
+    #     user: "{{ jenkins_user }}"
+    #     token: "{{ jenkins_token }}"
+    #   register: list_of_jenkins_jobs_response
+    #   ignore_errors: yes # fail on assert w/ msg if this fails
+    #   tags: check
+ 
+    # - name: Assert — Jenkins API is accessible
+    #   vars:
+    #     job_count: "{{ list_of_jenkins_jobs_response.jobs | length | default(0)  }}"
+    #   ansible.builtin.assert:
+    #     that:
+    #       - list_of_jenkins_jobs_response is defined
+    #       - list_of_jenkins_jobs_response.failed is false
+    #       - list_of_jenkins_jobs_response.jobs is defined
+    #     fail_msg: "Failed to read the Jenkins Jobs. Provided 'jenkins_token' variable is unusable. Please check your token."
+    #     success_msg: "Success reading the Jenkins Jobs, count of: {{job_count}}"
+    #   tags: check
+
+
+    # # ========== Check for connectivity to Sonarqube API ==========
+    # - name: Check — SonarQube API connection by reading ALM Settings
+    #   # almSetting refers to the registered Gitlab Integration Name.
+    #   # Found under Administration > DevOps Platform Integrations > Gitlab (tab) :: 'ObGit'
+    #   ansible.builtin.uri:
+    #     url: "{{sonar_addr}}/api/alm_settings/list"
+    #     user: "{{sonar_token}}"
+    #     password: ""  # weird but works
+    #     method: GET
+    #     force_basic_auth: yes
+    #   no_log: true
+    #   ignore_errors: yes
+    #   register: sonarqube_alm_settings_response
+    #   tags: check
+
+
+    # - name: Assert — SonarQube API is accessible
+    #   vars:
+    #     alm_settings: "{{ sonarqube_alm_settings_response.json | default('NO ALM SETTINGS FOUND') }}"
+    #   ansible.builtin.assert:
+    #     that:
+    #       - sonarqube_alm_settings_response is defined
+    #       - sonarqube_alm_settings_response.json is defined
+    #       - sonarqube_alm_settings_response.status == 200
+    #     fail_msg: "Failed to read the SonarQube. Provided 'sonar_token' is unusable. Please check your token."
+    #     success_msg: "Success reading the SonarQube API. Found ALM Settings: {{alm_settings}}"
+    #   tags: check
+
+
+    # # ========== Check for connectivity to Gitlab API ==========
+    # - name: Check — GitLab API Connection by reading list of projects
+    #   uri:
+    #     url: "{{ gitlab_api_uri }}/projects?owned=yes"
+    #     method: GET
+    #     validate_certs: no
+    #     status_code: 200
+    #     body_format: json
+    #     headers:
+    #         Content-Type: application/json
+    #         PRIVATE-TOKEN: "{{ gitlab_api_token }}"
+    #     body: {}
+    #   register: gitlab_list_projects_response
+    #   ignore_errors: yes
+    #   tags: check
+
+    # - name: Assert — GitLab API is accessible
+    #   vars: 
+    #     gitlab_project_count: "{{ gitlab_list_projects_response.json | length | default(0) }}"
+    #   ansible.builtin.assert:
+    #     that:
+    #       - gitlab_list_projects_response is defined
+    #       - gitlab_list_projects_response.json is defined
+    #       - gitlab_list_projects_response.status == 200
+    #     fail_msg: "Failed to read the Gitlab API. Provided 'gitlab_api_token' is unusable. Please check your token."
+    #     success_msg: "Success reading the Gitlab API. Found Gitlab project count: {{gitlab_project_count}}"
+    #   tags: check

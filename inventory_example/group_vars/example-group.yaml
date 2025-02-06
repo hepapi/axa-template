@@ -1,0 +1,16 @@
+postgresdb:
+  database: db 
+  password: XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+  username: postgres
+  host: "172.0.0.1"  
+  port: "5432"
+
+k8s:
+  kubeconfig_path: "~/.kube/config"
+  cluster_context: "default-context"
+
+helm:
+  release_name: "you-should-change-this"
+  release_namespace: "default"
+  chart_source: "roles/utilities/files/helm-chart/"
+  values_path: "roles/utilities/files/values.yaml"
