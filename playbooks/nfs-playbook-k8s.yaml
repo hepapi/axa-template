@@ -1,0 +1,5 @@
+- hosts: dev_downstream ## change group of nodes
+  become: true 
+  gather_facts: true
+  roles:
+    - nfs-prerequirements-k8s
