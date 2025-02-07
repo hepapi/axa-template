@@ -1,0 +1,12 @@
+nfs:
+  path: /data/nfs_share
+  reclaimPolicy: Retain
+storageClass:
+  allowVolumeExpansion: true
+  archiveOnDelete: true
+  create: true
+  defaultClass: true
+  name: nfs-sc
+  reclaimPolicy: Delete
+  volumeBindingMode: Immediate
+  pathPattern: ${.PVC.namespace}-${.PVC.name}

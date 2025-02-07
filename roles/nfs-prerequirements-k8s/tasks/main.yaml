@@ -1,0 +1,18 @@
+- name: Update dnf package cache
+  dnf:
+    update_cache: yes
+
+- name: Ensure nfs-utils is installed
+  ansible.builtin.yum:
+    name: nfs-utils
+    state: present
+
+- name: Add NFS Subdir External Provisioner Helm repository
+  command: helm repo add nfs-subdir-external-provisioner https://kubernetes-sigs.github.io/nfs-subdir-external-provisioner/
+  
+- name: Update Helm repositories
+  command: helm repo update
+
+- name: Install NFS Subdir External Provisioner
+  command: >
+    helm install nfs-subdir-external-provisioner nfs-subdir-external-provisioner/nfs-subdir-external-provisioner --values /roles/nfs-prerequirements-k8s/values/downstream-nfs-values.yaml -n nfs-subdir-external-provisioner  --create-namespace --set nfs.server={{ nfs_server_ip }}
