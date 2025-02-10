@@ -1,0 +1,27 @@
+- name: Set up kubectl autocomplete on RHEL
+  hosts: all
+  become: yes
+  tasks:
+    - name: Ensure bash-completion is installed
+      yum:
+        name: bash-completion
+        state: present
+
+    - name: Enable kubectl autocomplete for current shell
+      shell: "source <(kubectl completion bash)"
+      args:
+        executable: /bin/bash
+
+    - name: Add kubectl autocomplete to bashrc
+      lineinfile:
+        path: ~/.bashrc
+        line: "source <(kubectl completion bash)"
+        state: present
+
+    - name: Create kubectl alias and autocomplete
+      lineinfile:
+        path: ~/.bashrc
+        line: |
+          alias k=kubectl
+          complete -o default -F __start_kubectl k
+        state: present
