@@ -1,0 +1,64 @@
+---
+- name: Install and Configure Elasticsearch Cluster
+  hosts: elasticsearch
+  become: yes
+  vars:
+    es_version: "8.17.2"
+    cluster_name: "es-cluster"
+    node_name: "{{ inventory_hostname }}"
+    discovery_seed_hosts: "es-master-01,es-master-02,es-master-03"
+    cluster_initial_master_nodes: "es-master-01,es-master-02,es-master-03"
+  tasks:
+
+    - name: Import Elastic GPG Key
+      rpm_key:
+        state: present
+        key: https://artifacts.elastic.co/GPG-KEY-elasticsearch
+
+    - name: Add Elasticsearch repository
+      copy:
+        dest: /etc/yum.repos.d/elasticsearch.repo
+        content: |
+          [elasticsearch]
+          name=Elasticsearch repository for 8.x packages
+          baseurl=https://artifacts.elastic.co/packages/8.x/yum
+          gpgcheck=1
+          gpgkey=https://artifacts.elastic.co/GPG-KEY-elasticsearch
+          enabled=0
+          autorefresh=1
+          type=rpm-md
+
+    - name: Install Elasticsearch using Yum
+      yum:
+        name: elasticsearch
+        enablerepo: elasticsearch
+        state: present
+
+    - name: Configure Elasticsearch Cluster
+      template:
+        src: elasticsearch.yml.j2
+        dest: /etc/elasticsearch/elasticsearch.yml
+        owner: elasticsearch
+        group: elasticsearch
+        mode: 0644
+      notify: Restart Elasticsearch
+
+    - name: Reload systemd daemon
+      systemd:
+        daemon_reload: yes
+
+    - name: Enable Elasticsearch service
+      systemd:
+        name: elasticsearch
+        enabled: yes
+
+    - name: Start Elasticsearch service
+      systemd:
+        name: elasticsearch
+        state: started
+
+  handlers:
+    - name: Restart Elasticsearch
+      systemd:
+        name: elasticsearch
+        state: restarted
