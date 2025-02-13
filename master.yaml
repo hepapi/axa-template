@@ -1,0 +1,120 @@
+- name: Install required packages
+  ansible.builtin.dnf:
+    name: "{{ item }}"
+    state: present
+  loop:
+    - gpgme
+    - curl
+    - procps-ng
+    - net-tools
+    - gnupg2
+
+- name: Import Elastic GPG Key
+  rpm_key:
+    state: present
+    key: https://artifacts.elastic.co/GPG-KEY-elasticsearch
+
+- name: Add Elasticsearch repository
+  copy:
+    dest: /etc/yum.repos.d/elasticsearch.repo
+    content: |
+      [elasticsearch]
+      name=Elasticsearch repository for 8.x packages
+      baseurl=https://artifacts.elastic.co/packages/8.x/yum
+      gpgcheck=1
+      gpgkey=https://artifacts.elastic.co/GPG-KEY-elasticsearch
+      enabled=0
+      autorefresh=1
+      type=rpm-md
+
+- name: Install Elasticsearch using Yum
+  yum:
+    name: elasticsearch
+    enablerepo: elasticsearch
+    state: present
+
+- name: Configure Elasticsearch
+  ansible.builtin.lineinfile:
+    path: /etc/elasticsearch/elasticsearch.yml
+    regexp: "{{ item.regexp }}"
+    line: "{{ item.line }}"
+  loop:
+    - { regexp: '^network\.host:', line: 'network.host: {{ ansible_host }}' }
+    - { regexp: '^http\.port:', line: 'http.port: 9200' }
+    - { regexp: '^cluster\.name:', line: 'cluster.name: {{ elk_cluster_name }}' }
+    - { regexp: '^node\.name:', line: 'node.name: {{ node_name }}' }
+    - { regexp: '^cluster\.initial_master_nodes:', line: 'cluster.initial_master_nodes: {{ initial_master_node }}' } 
+    - { regexp: '^path\.data:', line: 'path.data: {{ elasticsearch_path }}' }
+
+- name: Create data directory with correct permissions
+  ansible.builtin.file:
+    path: /data/elasticsearch
+    state: directory
+    mode: '0755'
+    owner: elasticsearch
+    group: elasticsearch
+    recurse: yes
+
+- name: Reload systemd daemon
+  systemd:
+    daemon_reload: yes
+
+- name: Enable Elasticsearch service
+  systemd:
+    name: elasticsearch
+    enabled: yes
+
+- name: Start Elasticsearch service
+  systemd:
+    name: elasticsearch
+    state: started
+
+- name: Reset Elastic user password
+  ansible.builtin.command:
+    cmd: "/usr/share/elasticsearch/bin/elasticsearch-reset-password -b -u elastic"
+  register: reset_password_output
+  changed_when: "'New value:' in reset_password_output.stdout"
+
+- name: Debug reset_password_output
+  ansible.builtin.debug:
+    var: reset_password_output.stdout
+
+- name: Extract and set elastic password
+  ansible.builtin.set_fact:
+    elastic_password: "{{ reset_password_output.stdout | regex_search('New value:\\s(\\S+)', '\\1') }}"
+
+- name: Save elastic password to a file
+  ansible.builtin.copy:
+    content: "{{ elastic_password }}"
+    dest: "/root/elastic_password.txt"
+    mode: '0600'
+
+- name: Test Elasticsearch connection with new password
+  ansible.builtin.command: >
+    curl --cacert /etc/elasticsearch/certs/http_ca.crt -u elastic:{{ elastic_password }} https://localhost:9200
+  register: curl_response
+  failed_when: curl_response.rc != 0
+
+- name: Run elasticsearch-create-enrollment-token for Node
+  ansible.builtin.command: /usr/share/elasticsearch/bin/elasticsearch-create-enrollment-token -s node
+  register: enrollment_token_output
+
+- name: Run elasticsearch-create-enrollment-token for Kibana
+  ansible.builtin.command: /usr/share/elasticsearch/bin/elasticsearch-create-enrollment-token -s kibana
+  register: kibana_enrollment_token_output
+
+- name: Save enrollment tokens and elastic password to files
+  ansible.builtin.copy:
+    content: "Node Token: {{ enrollment_token_output.stdout }}\nKibana Token: {{ kibana_enrollment_token_output.stdout }}\nElastic Password: {{ elastic_password }}"
+    dest: "/root/elasticsearch_tokens.txt"
+    mode: '0600'
+
+- name: Display final message
+  ansible.builtin.debug:
+    msg: "Setup complete. Tokens and password saved at /root/elasticsearch_tokens.txt"
+
+- name: Save the enrollment token as a global fact
+  set_fact:
+      enrollment_token: "{{ enrollment_token_output.stdout }}"
+      elastic_password: "{{ elastic_password }}"
+      kibana_enrollment_token: "{{ kibana_enrollment_token_output.stdout }}"
