@@ -9,28 +9,23 @@
     - net-tools
     - gnupg2
 
-- name: Import Elastic GPG Key
-  rpm_key:
-    state: present
+- name: Import Elasticsearch GPG Key
+  ansible.builtin.rpm_key:
     key: https://artifacts.elastic.co/GPG-KEY-elasticsearch
+    state: present
 
-- name: Add Elasticsearch repository
-  copy:
-    dest: /etc/yum.repos.d/elasticsearch.repo
-    content: |
-      [elasticsearch]
-      name=Elasticsearch repository for 8.x packages
-      baseurl=https://artifacts.elastic.co/packages/8.x/yum
-      gpgcheck=1
-      gpgkey=https://artifacts.elastic.co/GPG-KEY-elasticsearch
-      enabled=0
-      autorefresh=1
-      type=rpm-md
-
-- name: Install Elasticsearch using Yum
-  yum:
+- name: Add Elasticsearch YUM Repository
+  ansible.builtin.yum_repository:
     name: elasticsearch
-    enablerepo: elasticsearch
+    description: "Elasticsearch repository for 8.x packages"
+    baseurl: "https://artifacts.elastic.co/packages/8.x/yum"
+    gpgcheck: yes
+    gpgkey: "https://artifacts.elastic.co/GPG-KEY-elasticsearch"
+    enabled: yes
+
+- name: Install Elasticsearch
+  ansible.builtin.dnf:
+    name: elasticsearch
     state: present
 
 - name: Configure Elasticsearch
@@ -47,29 +42,15 @@
 
 - name: Create data directory with correct permissions
   ansible.builtin.file:
-    path: /data/elasticsearch
+    path: /mnt/data/elasticsearch
     state: directory
     mode: '0755'
     owner: elasticsearch
     group: elasticsearch
     recurse: yes
 
-- name: Reload systemd daemon
-  systemd:
-    daemon_reload: yes
-
-- name: Enable Elasticsearch service
-  systemd:
-    name: elasticsearch
-    enabled: yes
-
-- name: Start Elasticsearch service
-  systemd:
-    name: elasticsearch
-    state: started
-
 - name: Check if Elasticsearch node is already part of a cluster
-  shell: curl --cacert /etc/elasticsearch/certs/http_ca.crt -u elastic:{{ hostvars['elk1']['elastic_password'] | string }} https://{{ ansible_host }}:9200/_cluster/health?pretty 
+  shell: curl --cacert /etc/elasticsearch/certs/http_ca.crt -u elastic:{{ hostvars['elk1']['elastic_password'] }} https://{{ ansible_host }}:9200/_cluster/health?pretty 
   register: cluster_health
   failed_when: false
   changed_when: false
@@ -79,10 +60,10 @@
     var: hostvars['elk1']['enrollment_token']
     var: cluster_health
 
-- name: Run elasticsearch-reconfigure-node with the enrollment token
-  shell: /usr/share/elasticsearch/bin/elasticsearch-reconfigure-node --enrollment-token {{ hostvars['elk1']['enrollment_token'] }}
-  args:
-    stdin: "y\n"
+# - name: Run elasticsearch-reconfigure-node with the enrollment token
+#   shell: /usr/share/elasticsearch/bin/elasticsearch-reconfigure-node --enrollment-token {{ hostvars['elk1']['enrollment_token'] }}
+#   args:
+#     stdin: "y\n"
 #   when: cluster_health.stdout | from_json | json_query('cluster_name') != elk_cluster_name
 
 - name: Enable and start Elasticsearch service
